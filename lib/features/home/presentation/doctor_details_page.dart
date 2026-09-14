@@ -1,4 +1,9 @@
+import 'package:e7gzly/core/app_bottom_nav.dart';
+import 'package:e7gzly/features/home/presentation/home_page.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:lottie/lottie.dart';
+import 'package:see_more_text/see_more_text.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 // ==========================================
@@ -23,13 +28,15 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Color(0xFF1E293B)),
-          onPressed: () {},
+          onPressed: () {
+            Navigator.pop(context);
+          },
         ),
-        title: const Text(
+        title: Text(
           'Doctor Details',
-          style: TextStyle(
+          style: GoogleFonts.inter(
             color: Color(0xFF1E293B),
-            fontSize: 18,
+            fontSize: 20,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -83,13 +90,13 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
                     ),
                   ),
                   const SizedBox(width: 14),
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           'Dr. David Patel',
-                          style: TextStyle(
+                          style: GoogleFonts.inter(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                             color: Color(0xFF1E293B),
@@ -98,7 +105,7 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
                         SizedBox(height: 4),
                         Text(
                           'Cardiologist',
-                          style: TextStyle(
+                          style: GoogleFonts.inter(
                             fontSize: 14,
                             color: Color(0xFF64748B),
                             fontWeight: FontWeight.w500,
@@ -162,43 +169,45 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
             const SizedBox(height: 24),
 
             // About Me
-            const Text(
+            Text(
               'About me',
-              style: TextStyle(
+              style: GoogleFonts.inter(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: Color(0xFF1E293B),
               ),
             ),
             const SizedBox(height: 8),
-            RichText(
-              text: const TextSpan(
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Color(0xFF64748B),
-                  height: 1.4,
-                ),
-                children: [
-                  TextSpan(
-                    text: 'Dr. David Patel, a dedicated cardiologist, brings a wealth of experience to Golden Gate Cardiology Center in Golden Gate, CA. ',
-                  ),
-                  TextSpan(
-                    text: 'view more',
-                    style: TextStyle(
-                      color: Color(0xFF1E293B),
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
+            SeeMoreText(
+              text: 'Just launched my new Flutter app! 🚀 Check it out at https://myapp.com and follow me @flutter_dev for updates! #FlutterDev #MobileApp',
+              maxLines: 2,
+              textStyle: GoogleFonts.inter(fontSize: 14, color: Colors.black),
+              linkStyle: GoogleFonts.inter(fontSize: 14, color: Colors.blue),
+              seeMoreLessTextStyle: GoogleFonts.inter(
+                fontSize: 14,
+                decoration: TextDecoration.underline,
+                fontWeight: FontWeight.w400,
               ),
+              onUrlTap: (url) {
+                // Open the URL in browser
+                // launchUrl(Uri.parse(url));
+              },
+              onHashtagTap: (hashtag) {
+                // Navigate to hashtag page
+                print('Tapped on $hashtag');
+              },
+              onMentionTap: (mention) {
+                // Show user profile
+                print('Tapped on $mention');
+              },
             ),
             const SizedBox(height: 24),
 
             // Working Time
-            const Text(
+            Text(
               'Working Time',
-              style: TextStyle(
-                fontSize: 18,
+              style: GoogleFonts.inter(
+                fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: Color(0xFF1E293B),
               ),
@@ -360,16 +369,16 @@ class _StatItem extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           label,
-          style: const TextStyle(
+          style: GoogleFonts.inter(
             fontSize: 14,
             fontWeight: FontWeight.bold,
-            color: Color(0xFF1E293B),
+            color: Color(0xff4B5563),
           ),
         ),
         const SizedBox(height: 2),
         Text(
           subLabel,
-          style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+          style: GoogleFonts.inter(fontSize: 14, color: Color(0xff6B7280)),
         ),
       ],
     );
@@ -387,8 +396,9 @@ class BookAppointmentScreen extends StatefulWidget {
 }
 
 class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
-  DateTime _focusedDay = DateTime(2023, 6, 30);
-  DateTime? _selectedDay = DateTime(2023, 6, 30);
+  DateTime date = DateTime.now();
+  DateTime _focusedDay = DateTime.now();
+  DateTime? _selectedDay = DateTime.now();
   String _selectedTimeSlot = '10.00 AM';
 
   final List<String> _timeSlots = [
@@ -485,6 +495,17 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                   ),
                 ),
                 calendarStyle: CalendarStyle(
+                  // 1. Add default decoration override
+                  defaultDecoration: const BoxDecoration(
+                    shape: BoxShape.rectangle,
+                    borderRadius: BorderRadius.all(Radius.circular(8)),
+                  ),
+                  // 2. Add weekend decoration override
+                  weekendDecoration: const BoxDecoration(
+                    shape: BoxShape.rectangle,
+                    borderRadius: BorderRadius.all(Radius.circular(8)),
+                  ),
+                  // Existing configurations:
                   selectedDecoration: const BoxDecoration(
                     color: Color(0xFF1E293B),
                     shape: BoxShape.rectangle,
@@ -645,7 +666,40 @@ class SuccessDialogWidget extends StatelessWidget {
               width: double.infinity,
               height: 48,
               child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () async {
+                  showDialog(
+                    context: context,
+                    barrierDismissible:
+                        false, // Prevent user from dismissing manually
+                    builder: (BuildContext dialogContext) {
+                      return Dialog(
+                        backgroundColor: Colors.transparent,
+                        elevation: 0,
+                        child: Lottie.asset(
+                          'assets/lottie/done.json',
+                          repeat: false, // Ensure it plays only once
+                        ),
+                      );
+                    },
+                  );
+
+                  // 2. Await the duration of the animation (e.g., 2 seconds)
+                  await Future.delayed(const Duration(seconds: 2));
+
+                  // 3. Verify context is still mounted before popping
+                  if (!context.mounted) return;
+
+                  // 4. Pop the dialog route
+                  Navigator.of(context).pop();
+
+                  // 5. Pop the target screen
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => MainWrapperScreen(),
+                    ),
+                  );
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF1E293B),
                   shape: RoundedRectangleBorder(

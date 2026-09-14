@@ -28,11 +28,13 @@ class _MainWrapperScreenState extends State<MainWrapperScreen> {
       body: IndexedStack(index: _currentIndex, children: _pages),
       bottomNavigationBar: CustomBottomNavBar(
         currentIndex: _currentIndex,
+
         onTap: (index) {
           setState(() {
             _currentIndex = index;
           });
         },
+        
       ),
     );
   }
@@ -58,7 +60,7 @@ class CustomBottomNavBar extends StatelessWidget {
     ];
 
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      padding: const EdgeInsets.symmetric(vertical: 20),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(top: BorderSide(color: Color(0xFFF1F5F9))),
@@ -69,7 +71,7 @@ class CustomBottomNavBar extends StatelessWidget {
           final bool isSelected = currentIndex == index;
 
           return GestureDetector(
-            onTap: () => onTap(index),
+            onTap: () => onTap(index),       
             behavior: HitTestBehavior.opaque,
             child: Container(
               padding: const EdgeInsets.all(10),

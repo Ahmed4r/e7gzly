@@ -5,6 +5,7 @@ import 'package:e7gzly/features/home/presentation/near_by_clinics_page.dart';
 import 'package:e7gzly/features/home/presentation/notification_page.dart';
 import 'package:e7gzly/features/home/presentation/show_all_doctors_page.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -75,20 +76,23 @@ class LocationHeader extends StatelessWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Location',
-              style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+              textAlign: TextAlign.start,
+              style: GoogleFonts.inter(fontSize: 14, color: Color(0xFF94A3B8)),
             ),
             const SizedBox(height: 2),
             Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Image.asset('assets/icons/location.png'),
+                Image.asset('assets/icons/location_bold.png'),
                 const SizedBox(width: 4),
-                const Text(
-                  'Seattle, USA',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
+                Text(
+                  'Baltinme, EG',
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
                     color: Color(0xFF0F172A),
                   ),
                 ),
@@ -119,11 +123,7 @@ class LocationHeader extends StatelessWidget {
                   color: Color(0xFFF1F5F9),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
-                  Icons.notifications,
-                  size: 20,
-                  color: Color(0xFF1E293B),
-                ),
+                child: Image.asset('assets/icons/notification-bing_bold.png'),
               ),
             ),
             Positioned(
@@ -155,10 +155,10 @@ class SearchBarWidget extends StatelessWidget {
         color: const Color(0xFFF1F5F9),
         borderRadius: BorderRadius.circular(12),
       ),
-      child: const TextField(
+      child: TextField(
         decoration: InputDecoration(
           hintText: 'Search doctor...',
-          hintStyle: TextStyle(color: Color(0xFF94A3B8), fontSize: 14),
+          hintStyle: GoogleFonts.inter(color: Color(0xFF94A3B8), fontSize: 14),
           prefixIcon: Icon(Icons.search, color: Color(0xFF94A3B8), size: 22),
           border: InputBorder.none,
           contentPadding: EdgeInsets.symmetric(vertical: 14),
@@ -187,6 +187,11 @@ class DoctorPromoBanner extends StatelessWidget {
             images[itemIndex],
             filterQuality: FilterQuality.high,
             fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) => Container(
+              height: 120,
+              color: const Color(0xFFE2E8F0),
+              child: const Icon(Icons.image, color: Color(0xFF94A3B8)),
+            ),
           ),
       options: CarouselOptions(
         height: 200,
@@ -220,8 +225,8 @@ class SectionHeader extends StatelessWidget {
       children: [
         Text(
           title,
-          style: const TextStyle(
-            fontSize: 18,
+          style: GoogleFonts.inter(
+            fontSize: 16,
             fontWeight: FontWeight.bold,
             color: Color(0xFF0F172A),
           ),
@@ -233,10 +238,10 @@ class SectionHeader extends StatelessWidget {
               MaterialPageRoute(builder: (context) => screen),
             );
           },
-          child: const Text(
+          child: Text(
             'See All',
-            style: TextStyle(
-              fontSize: 13,
+            style: GoogleFonts.inter(
+              fontSize: 14,
               color: Color(0xFF64748B),
               fontWeight: FontWeight.w500,
             ),
@@ -321,9 +326,9 @@ class CategoriesGrid extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               item['title'] as String,
-              style: const TextStyle(
+              style: GoogleFonts.inter(
                 fontSize: 12,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.bold,
                 color: Color(0xFF334155),
               ),
               overflow: TextOverflow.ellipsis,

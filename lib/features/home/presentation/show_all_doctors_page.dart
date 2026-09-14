@@ -1,3 +1,6 @@
+import 'package:e7gzly/core/custom_loading.dart';
+import 'package:e7gzly/features/home/data/doctor_model.dart';
+import 'package:e7gzly/features/home/presentation/doctor_details_page.dart';
 import 'package:flutter/material.dart';
 
 class AllDoctorsScreen extends StatefulWidget {
@@ -9,7 +12,47 @@ class AllDoctorsScreen extends StatefulWidget {
 
 class _AllDoctorsScreenState extends State<AllDoctorsScreen> {
   String _selectedCategory = 'All';
-  final List<String> _categories = ['All', 'General', 'Cardiologist', 'Dentist'];
+  final List<String> _categories = [
+    'All',
+    'General',
+    'Cardiologist',
+    'Dentist',
+  ];
+  // The data list now holds models, not widgets.
+  List<DoctorModel> doctorsList = [];
+  bool isLoading = true;
+
+  // Mock API call function
+  Future<void> fetchDoctors() async {
+    // Simulate API delay
+    await Future.delayed(const Duration(seconds: 2));
+
+    // Simulated JSON response from API
+    final List<dynamic> jsonResponse = [
+      {
+        "name": "Dr. David Patel",
+        "specialty": "Cardiologist",
+        "location": "Cardiology Center, USA",
+        "rating": 5.0,
+        "reviews": 1872,
+      },
+      // ... other items
+    ];
+
+    setState(() {
+      doctorsList = jsonResponse
+          .map((json) => DoctorModel.fromJson(json))
+          .toList();
+      isLoading = false;
+    });
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    fetchDoctors();
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,8 +89,14 @@ class _AllDoctorsScreenState extends State<AllDoctorsScreen> {
               child: TextField(
                 decoration: InputDecoration(
                   hintText: 'Search doctor...',
-                  hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 15),
-                  prefixIcon: const Icon(Icons.search, color: Color(0xFF94A3B8)),
+                  hintStyle: const TextStyle(
+                    color: Color(0xFF94A3B8),
+                    fontSize: 15,
+                  ),
+                  prefixIcon: const Icon(
+                    Icons.search,
+                    color: Color(0xFF94A3B8),
+                  ),
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.symmetric(vertical: 14),
                 ),
@@ -76,16 +125,22 @@ class _AllDoctorsScreenState extends State<AllDoctorsScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: isSelected ? const Color(0xFF1E293B) : Colors.white,
+                      color: isSelected
+                          ? const Color(0xFF1E293B)
+                          : Colors.white,
                       border: Border.all(
-                        color: isSelected ? const Color(0xFF1E293B) : const Color(0xFFCBD5E1),
+                        color: isSelected
+                            ? const Color(0xFF1E293B)
+                            : const Color(0xFFCBD5E1),
                       ),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
                       category,
                       style: TextStyle(
-                        color: isSelected ? Colors.white : const Color(0xFF1E293B),
+                        color: isSelected
+                            ? Colors.white
+                            : const Color(0xFF1E293B),
                         fontWeight: FontWeight.w600,
                         fontSize: 14,
                       ),
@@ -95,7 +150,7 @@ class _AllDoctorsScreenState extends State<AllDoctorsScreen> {
               },
             ),
           ),
-          
+
           const SizedBox(height: 20),
 
           // Results count and Sort
@@ -129,44 +184,45 @@ class _AllDoctorsScreenState extends State<AllDoctorsScreen> {
               ],
             ),
           ),
-          
+
           const SizedBox(height: 16),
 
           // Doctor List
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              children: const [
-                DoctorListCard(
-                  name: 'Dr. David Patel',
-                  specialty: 'Cardiologist',
-                  location: 'Cardiology Center, USA',
-                  rating: '5',
-                  reviews: '1,872',
-                ),
-                DoctorListCard(
-                  name: 'Dr. Jessica Turner',
-                  specialty: 'Gynecologist',
-                  location: "Women's Clinic, Seattle, USA",
-                  rating: '4.9',
-                  reviews: '127',
-                ),
-                DoctorListCard(
-                  name: 'Dr. Michael Johnson',
-                  specialty: 'Orthopedic Surgery',
-                  location: 'Maple Associates, NY, USA',
-                  rating: '4.7',
-                  reviews: '5,223',
-                ),
-                DoctorListCard(
-                  name: 'Dr. Emily Walker',
-                  specialty: 'Pediatrics',
-                  location: 'Serenity Pediatrics Clinic',
-                  rating: '5',
-                  reviews: '405',
-                ),
-              ],
-            ),
+            child: isLoading
+                ? const Center(child: CustomLoadingIndicator())
+                : ListView.builder(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 8,
+                    ),
+                    itemCount: doctorsList.length,
+                    itemBuilder: (context, index) {
+                      final doctor = doctorsList[index];
+
+                      return InkWell(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => DoctorDetailsScreen(),
+                            ),
+                          );
+                        },
+                        child: DoctorListCard(
+                          name: doctor.name,
+                          specialty: doctor.specialty,
+                          location: doctor.location,
+                          rating: doctor.rating.toString(),
+                          // Formatting integers with commas if necessary
+                          reviews: doctor.reviews.toString().replaceAllMapped(
+                            RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+                            (Match m) => '${m[1]},',
+                          ),
+                        ),
+                      );
+                    },
+                  ),
           ),
         ],
       ),
@@ -223,11 +279,15 @@ class _DoctorListCardState extends State<DoctorListCard> {
               width: 90,
               height: 100,
               color: const Color(0xFFE2E8F0),
-              child: const Icon(Icons.person, size: 50, color: Color(0xFF94A3B8)),
+              child: const Icon(
+                Icons.person,
+                size: 50,
+                color: Color(0xFF94A3B8),
+              ),
             ),
           ),
           const SizedBox(width: 14),
-          
+
           // Details Column
           Expanded(
             child: Column(
@@ -256,7 +316,9 @@ class _DoctorListCardState extends State<DoctorListCard> {
                       child: Icon(
                         isFavorite ? Icons.favorite : Icons.favorite_border,
                         size: 20,
-                        color: isFavorite ? Colors.red : const Color(0xFF64748B),
+                        color: isFavorite
+                            ? Colors.red
+                            : const Color(0xFF64748B),
                       ),
                     ),
                   ],
@@ -273,7 +335,11 @@ class _DoctorListCardState extends State<DoctorListCard> {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    const Icon(Icons.location_on_outlined, size: 14, color: Color(0xFF64748B)),
+                    const Icon(
+                      Icons.location_on_outlined,
+                      size: 14,
+                      color: Color(0xFF64748B),
+                    ),
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
@@ -290,7 +356,11 @@ class _DoctorListCardState extends State<DoctorListCard> {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    const Icon(Icons.star, size: 16, color: Colors.orangeAccent),
+                    const Icon(
+                      Icons.star,
+                      size: 16,
+                      color: Colors.orangeAccent,
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       widget.rating,
@@ -302,7 +372,10 @@ class _DoctorListCardState extends State<DoctorListCard> {
                     ),
                     const Padding(
                       padding: EdgeInsets.symmetric(horizontal: 8),
-                      child: Text('|', style: TextStyle(color: Color(0xFFCBD5E1))),
+                      child: Text(
+                        '|',
+                        style: TextStyle(color: Color(0xFFCBD5E1)),
+                      ),
                     ),
                     Text(
                       '${widget.reviews} Reviews',
