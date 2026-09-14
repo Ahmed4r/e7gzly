@@ -1,0 +1,67 @@
+workflows:
+  ios-release-build:
+    name: iOS Unsigned IPA Build
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+          source: true
+    max_build_duration: 120
+    instance_type: mac_mini_m2
+    
+    working_directory: . 
+    
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+     
+    cache:
+      cache_paths:
+        - $FLUTTER_ROOT/.pub-cache
+        - $HOME/.pub-cache
+        - ios/Pods
+    scripts:
+      - name: 📦 Install Flutter Dependencies
+        script: flutter pub get
+
+      - name: ⚙️ Ensure iOS Directory Exists & Pre-build
+        script: |
+          if [ ! -d "ios" ]; then
+            flutter create --platforms=ios .
+          fi
+          flutter build ios --config-only --no-codesign
+
+      - name: 🛠️ Setup CocoaPods
+        script: |
+          # CocoaPods requires this exact case on the macOS build runner.
+          if [ -f ios/podfile ] && [ ! -f ios/Podfile ]; then
+            mv ios/podfile ios/Podfile
+          fi
+          cd ios
+          rm -rf Pods
+          rm -f Podfile.lock
+          pod install --repo-update
+          cd ..
+
+      - name: 🏗️ Build iOS Release
+        script: |
+          # This workflow intentionally creates an unsigned IPA. Flutter's device
+          # validator requires a non-empty DEVELOPMENT_TEAM key even with --no-codesign.
+          perl -0pi -e 's/DEVELOPMENT_TEAM = "";/DEVELOPMENT_TEAM = UNSIGNED;/g; s/(DEVELOPMENT_TEAM = UNSIGNED;)/CODE_SIGNING_ALLOWED = NO;\n                CODE_SIGNING_REQUIRED = NO;\n                $1/g unless /CODE_SIGNING_ALLOWED = NO;/' ios/Runner.xcodeproj/project.pbxproj
+          flutter build ios --release --no-codesign \
+            --no-tree-shake-icons \
+            --build-name=1.0.$BUILD_NUMBER \
+            --build-number=$BUILD_NUMBER
+
+      - name: 📂 Create IPA
+        script: |
+          cd build/ios/iphoneos
+          mkdir -p Payload
+          cp -r Runner.app Payload/
+          zip -qq -r -9 App_V${BUILD_NUMBER}.ipa Payload
+
+    artifacts:
+      - build/ios/iphoneos/*.ipa
