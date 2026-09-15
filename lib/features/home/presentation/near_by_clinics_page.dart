@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:e7gzly/core/api_constants.dart';
 import 'package:e7gzly/core/custom_loading.dart';
 import 'package:e7gzly/features/home/data/clinic_model.dart';
 import 'package:e7gzly/features/home/presentation/center_details_page.dart';
@@ -31,7 +32,7 @@ class _NearbyCentersScreenState extends State<NearbyCentersScreen> {
   Future<void> fetchClinics() async {
     try {
       final response = await http.get(
-        Uri.parse('http://10.0.2.2:8080/api/clinics'),
+        Uri.parse('${ApiConstants.baseUrl}/clinics'),
       );
 
       debugPrint('Clinics API: ${response.body}');

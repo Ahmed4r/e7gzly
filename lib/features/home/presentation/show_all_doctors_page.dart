@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:e7gzly/core/api_constants.dart';
 import 'package:e7gzly/core/custom_loading.dart';
 import 'package:e7gzly/features/home/data/doctor_model.dart';
 import 'package:e7gzly/features/home/presentation/doctor_details_page.dart';
@@ -32,7 +33,7 @@ class _AllDoctorsScreenState extends State<AllDoctorsScreen> {
   Future<void> fetchDoctors() async {
     try {
       final response = await http.get(
-        Uri.parse('http://10.0.2.2:8080/api/doctors'),
+        Uri.parse('${ApiConstants.baseUrl}/doctors'),
       );
 
       debugPrint('Doctors API: ${response.body}');

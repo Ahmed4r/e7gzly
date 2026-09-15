@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:e7gzly/core/api_constants.dart';
 import 'package:e7gzly/features/home/data/clinic_model.dart';
 import 'package:e7gzly/features/home/data/doctor_model.dart';
 import 'package:flutter/material.dart';
@@ -24,7 +25,7 @@ class _CenterDetailsScreenState extends State<CenterDetailsScreen> {
   Future<void> fetchDoctors() async {
     try {
       final response = await http.get(
-        Uri.parse('http://10.0.2.2:8080/api/doctors'),
+        Uri.parse('${ApiConstants.baseUrl}/doctors'),
       );
 
       debugPrint('Doctors API: ${response.body}');
