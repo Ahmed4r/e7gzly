@@ -1,11 +1,16 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:developer';
+
 import 'package:carousel_slider/carousel_slider.dart';
-import 'package:e7gzly/core/app_bottom_nav.dart';
-import 'package:e7gzly/features/home/presentation/doctor_details_page.dart';
+import 'package:e7gzly/features/home/data/clinic_model.dart';
+import 'package:e7gzly/features/home/presentation/center_details_page.dart';
 import 'package:e7gzly/features/home/presentation/near_by_clinics_page.dart';
 import 'package:e7gzly/features/home/presentation/notification_page.dart';
 import 'package:e7gzly/features/home/presentation/show_all_doctors_page.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -340,26 +345,96 @@ class CategoriesGrid extends StatelessWidget {
   }
 }
 
-class MedicalCentersList extends StatelessWidget {
+class MedicalCentersList extends StatefulWidget {
   const MedicalCentersList({super.key});
 
   @override
+  State<MedicalCentersList> createState() => _MedicalCentersListState();
+}
+
+class _MedicalCentersListState extends State<MedicalCentersList> {
+  List<ClinicModel> clinics = [];
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchClinics();
+  }
+
+  Future<void> fetchClinics() async {
+    try {
+      final response = await http.get(
+        Uri.parse('http://10.0.2.2:8080/api/clinics'),
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> jsonResponse = jsonDecode(response.body);
+
+        setState(() {
+          clinics = jsonResponse
+              .map((json) => ClinicModel.fromJson(json as Map<String, dynamic>))
+              .toList();
+
+          isLoading = false;
+        });
+      } else {
+        throw Exception('Failed to load clinics');
+      }
+    } catch (e) {
+      debugPrint('Error fetching clinics: $e');
+
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return const SizedBox(
+        height: 180,
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (clinics.isEmpty) {
+      return const SizedBox(
+        height: 180,
+        child: Center(
+          child: Text(
+            'No medical centers found',
+            style: TextStyle(color: Color(0xFF64748B)),
+          ),
+        ),
+      );
+    }
+
     return SizedBox(
       height: 180,
-      child: ListView(
+      child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        children: const [
-          MedicalCenterCard(
-            title: 'Sunrise Health Clinic',
-            imageUrl: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?q=80&w=400&auto=format&fit=crop',
-          ),
-          SizedBox(width: 16),
-          MedicalCenterCard(
-            title: 'Golden Cardiology',
-            imageUrl: 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?q=80&w=400&auto=format&fit=crop',
-          ),
-        ],
+        itemCount: clinics.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 16),
+        itemBuilder: (context, index) {
+          final clinic = clinics[index];
+
+          return GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => CenterDetailsScreen(clinic: clinic),
+                ),
+              );
+            },
+            child: MedicalCenterCard(
+              title: clinic.name,
+              imageUrl: clinic.imageUrl,
+            ),
+          );
+        },
       ),
     );
   }
@@ -367,7 +442,7 @@ class MedicalCentersList extends StatelessWidget {
 
 class MedicalCenterCard extends StatelessWidget {
   final String title;
-  final String imageUrl;
+  final String? imageUrl;
 
   const MedicalCenterCard({
     super.key,
@@ -393,20 +468,32 @@ class MedicalCenterCard extends StatelessWidget {
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(16),
                 ),
-                child: Image.network(
-                  imageUrl,
-                  height: 120,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    height: 120,
-                    color: const Color(0xFFE2E8F0),
-                    child: const Icon(
-                      Icons.local_hospital,
-                      color: Color(0xFF94A3B8),
-                    ),
-                  ),
-                ),
+
+                child: imageUrl != null && imageUrl!.isNotEmpty
+                    ? Image.network(
+                        imageUrl!,
+                        height: 120,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          height: 120,
+                          width: double.infinity,
+                          color: const Color(0xFFE2E8F0),
+                          child: const Icon(
+                            Icons.local_hospital,
+                            color: Color(0xFF94A3B8),
+                          ),
+                        ),
+                      )
+                    : Container(
+                        height: 120,
+                        width: double.infinity,
+                        color: const Color(0xFFE2E8F0),
+                        child: const Icon(
+                          Icons.local_hospital,
+                          color: Color(0xFF94A3B8),
+                        ),
+                      ),
               ),
               Positioned(
                 right: 10,

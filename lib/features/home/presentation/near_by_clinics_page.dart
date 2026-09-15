@@ -1,4 +1,10 @@
+import 'dart:convert';
+
+import 'package:e7gzly/core/custom_loading.dart';
+import 'package:e7gzly/features/home/data/clinic_model.dart';
+import 'package:e7gzly/features/home/presentation/center_details_page.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 class NearbyCentersScreen extends StatefulWidget {
   const NearbyCentersScreen({super.key});
@@ -9,12 +15,87 @@ class NearbyCentersScreen extends StatefulWidget {
 
 class _NearbyCentersScreenState extends State<NearbyCentersScreen> {
   String _selectedCategory = 'All';
-  final List<String> _categories = ['All', 'Hospitals', 'Clinics', 'Pharmacies', 'Labs'];
+
+  final List<String> _categories = [
+    'All',
+    'Hospitals',
+    'Clinics',
+    'Pharmacies',
+    'Labs',
+  ];
+
+  List<ClinicModel> clinicsList = [];
+
+  bool isLoading = true;
+
+  Future<void> fetchClinics() async {
+    try {
+      final response = await http.get(
+        Uri.parse('http://10.0.2.2:8080/api/clinics'),
+      );
+
+      debugPrint('Clinics API: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final List<dynamic> jsonResponse = jsonDecode(response.body);
+
+        setState(() {
+          clinicsList = jsonResponse
+              .map((json) => ClinicModel.fromJson(json as Map<String, dynamic>))
+              .toList();
+
+          isLoading = false;
+        });
+      } else {
+        throw Exception('Failed to load clinics: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Error fetching clinics: $e');
+
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  List<ClinicModel> get filteredClinics {
+    if (_selectedCategory == 'All') {
+      return clinicsList;
+    }
+
+    return clinicsList.where((clinic) {
+      final type = clinic.type?.toLowerCase() ?? '';
+
+      switch (_selectedCategory) {
+        case 'Hospitals':
+          return type.contains('hospital');
+
+        case 'Clinics':
+          return type.contains('clinic');
+
+        case 'Pharmacies':
+          return type.contains('pharmacy');
+
+        case 'Labs':
+          return type.contains('lab');
+
+        default:
+          return true;
+      }
+    }).toList();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    fetchClinics();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -32,6 +113,7 @@ class _NearbyCentersScreenState extends State<NearbyCentersScreen> {
         ),
         centerTitle: true,
       ),
+
       body: Column(
         children: [
           // Search Bar
@@ -66,6 +148,7 @@ class _NearbyCentersScreenState extends State<NearbyCentersScreen> {
               itemBuilder: (context, index) {
                 final category = _categories[index];
                 final isSelected = category == _selectedCategory;
+
                 return GestureDetector(
                   onTap: () {
                     setState(() {
@@ -76,16 +159,22 @@ class _NearbyCentersScreenState extends State<NearbyCentersScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: isSelected ? const Color(0xFF1E293B) : Colors.white,
+                      color: isSelected
+                          ? const Color(0xFF1E293B)
+                          : Colors.white,
                       border: Border.all(
-                        color: isSelected ? const Color(0xFF1E293B) : const Color(0xFFCBD5E1),
+                        color: isSelected
+                            ? const Color(0xFF1E293B)
+                            : const Color(0xFFCBD5E1),
                       ),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
                       category,
                       style: TextStyle(
-                        color: isSelected ? Colors.white : const Color(0xFF1E293B),
+                        color: isSelected
+                            ? Colors.white
+                            : const Color(0xFF1E293B),
                         fontWeight: FontWeight.w600,
                         fontSize: 14,
                       ),
@@ -95,24 +184,24 @@ class _NearbyCentersScreenState extends State<NearbyCentersScreen> {
               },
             ),
           ),
-          
+
           const SizedBox(height: 20),
 
-          // Results count and Sort
+          // Results count
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: const [
+              children: [
                 Text(
-                  '124 found',
-                  style: TextStyle(
+                  '${clinicsList.length} found',
+                  style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFF1E293B),
                   ),
                 ),
-                Row(
+                const Row(
                   children: [
                     Text(
                       'Distance',
@@ -129,48 +218,51 @@ class _NearbyCentersScreenState extends State<NearbyCentersScreen> {
               ],
             ),
           ),
-          
+
           const SizedBox(height: 16),
 
           // Centers List
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              children: const [
-                MedicalCenterCard(
-                  name: 'Golden Cardiology Center',
-                  type: 'Specialty Clinic',
-                  location: 'Golden Gate, CA, USA',
-                  rating: '4.9',
-                  reviews: '1,204',
-                  distance: '1.2 km',
-                ),
-                MedicalCenterCard(
-                  name: 'City General Hospital',
-                  type: 'Hospital',
-                  location: 'Downtown Ave, Seattle, USA',
-                  rating: '4.7',
-                  reviews: '8,432',
-                  distance: '2.5 km',
-                ),
-                MedicalCenterCard(
-                  name: "Women's Health Clinic",
-                  type: 'Clinic',
-                  location: 'Pine Street, Seattle, USA',
-                  rating: '4.8',
-                  reviews: '943',
-                  distance: '3.1 km',
-                ),
-                MedicalCenterCard(
-                  name: 'Elite Ortho Clinic',
-                  type: 'Specialty Clinic',
-                  location: 'Maple Associates, NY, USA',
-                  rating: '4.6',
-                  reviews: '512',
-                  distance: '4.8 km',
-                ),
-              ],
-            ),
+            child: isLoading
+                ? const Center(child: CustomLoadingIndicator())
+                : filteredClinics.isEmpty
+                ? const Center(
+                    child: Text(
+                      'No medical centers found',
+                      style: TextStyle(color: Color(0xFF64748B), fontSize: 15),
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 8,
+                    ),
+                    itemCount: filteredClinics.length,
+                    itemBuilder: (context, index) {
+                      final clinic = filteredClinics[index];
+
+                      return GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  CenterDetailsScreen(clinic: clinic),
+                            ),
+                          );
+                        },
+                        child: MedicalCenterCard(
+                          name: clinic.name,
+                          type: clinic.type ?? 'Medical Center',
+                          location: clinic.address,
+                          imageUrl: clinic.imageUrl,
+                          rating: clinic.rating?.toString() ?? '—',
+                          reviews: clinic.reviewsCount?.toString() ?? '—',
+                          distance: '—',
+                        ),
+                      );
+                    },
+                  ),
           ),
         ],
       ),
@@ -182,6 +274,7 @@ class MedicalCenterCard extends StatefulWidget {
   final String name;
   final String type;
   final String location;
+  final String? imageUrl;
   final String rating;
   final String reviews;
   final String distance;
@@ -191,6 +284,7 @@ class MedicalCenterCard extends StatefulWidget {
     required this.name,
     required this.type,
     required this.location,
+    required this.imageUrl,
     required this.rating,
     required this.reviews,
     required this.distance,
@@ -222,25 +316,46 @@ class _MedicalCenterCardState extends State<MedicalCenterCard> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Image Placeholder (Hospital/Building Icon)
+          // Clinic Image
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: Container(
+            child: SizedBox(
               width: 90,
               height: 100,
-              color: const Color(0xFFF1F5F9),
-              child: const Icon(Icons.local_hospital_rounded, size: 40, color: Color(0xFF94A3B8)),
+              child: widget.imageUrl != null && widget.imageUrl!.isNotEmpty
+                  ? Image.network(
+                      widget.imageUrl!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          color: const Color(0xFFF1F5F9),
+                          child: const Icon(
+                            Icons.local_hospital_rounded,
+                            size: 40,
+                            color: Color(0xFF94A3B8),
+                          ),
+                        );
+                      },
+                    )
+                  : Container(
+                      color: const Color(0xFFF1F5F9),
+                      child: const Icon(
+                        Icons.local_hospital_rounded,
+                        size: 40,
+                        color: Color(0xFF94A3B8),
+                      ),
+                    ),
             ),
           ),
+
           const SizedBox(width: 14),
-          
-          // Details Column
+
+          // Details
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
@@ -253,6 +368,7 @@ class _MedicalCenterCardState extends State<MedicalCenterCard> {
                         ),
                       ),
                     ),
+
                     GestureDetector(
                       onTap: () {
                         setState(() {
@@ -262,12 +378,16 @@ class _MedicalCenterCardState extends State<MedicalCenterCard> {
                       child: Icon(
                         isFavorite ? Icons.favorite : Icons.favorite_border,
                         size: 20,
-                        color: isFavorite ? Colors.red : const Color(0xFF64748B),
+                        color: isFavorite
+                            ? Colors.red
+                            : const Color(0xFF64748B),
                       ),
                     ),
                   ],
                 ),
+
                 const SizedBox(height: 4),
+
                 Text(
                   widget.type,
                   style: const TextStyle(
@@ -276,10 +396,16 @@ class _MedicalCenterCardState extends State<MedicalCenterCard> {
                     color: Color(0xFF475569),
                   ),
                 ),
+
                 const SizedBox(height: 8),
+
                 Row(
                   children: [
-                    const Icon(Icons.location_on_outlined, size: 14, color: Color(0xFF64748B)),
+                    const Icon(
+                      Icons.location_on_outlined,
+                      size: 14,
+                      color: Color(0xFF64748B),
+                    ),
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
@@ -293,11 +419,18 @@ class _MedicalCenterCardState extends State<MedicalCenterCard> {
                     ),
                   ],
                 ),
+
                 const SizedBox(height: 8),
+
                 Row(
                   children: [
-                    const Icon(Icons.star, size: 16, color: Colors.orangeAccent),
+                    const Icon(
+                      Icons.star,
+                      size: 16,
+                      color: Colors.orangeAccent,
+                    ),
                     const SizedBox(width: 4),
+
                     Text(
                       widget.rating,
                       style: const TextStyle(
@@ -306,12 +439,19 @@ class _MedicalCenterCardState extends State<MedicalCenterCard> {
                         color: Color(0xFF475569),
                       ),
                     ),
+
                     const Padding(
                       padding: EdgeInsets.symmetric(horizontal: 6),
-                      child: Text('|', style: TextStyle(color: Color(0xFFCBD5E1))),
+                      child: Text(
+                        '|',
+                        style: TextStyle(color: Color(0xFFCBD5E1)),
+                      ),
                     ),
+
                     Text(
-                      '${widget.distance} away',
+                      widget.distance == '—'
+                          ? 'Distance unavailable'
+                          : '${widget.distance} away',
                       style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
