@@ -28,7 +28,7 @@ public class AppointmentService {
     public Appointment createAppointment(AppointmentRequest request) {
         Doctor doctor = doctorRepository.findById(request.getDoctorId())
                 .orElseThrow(() -> new RuntimeException("Doctor not found"));
-        
+
         Patient patient = patientRepository.findById(request.getPatientId())
                 .orElseGet(() -> {
                     // Auto-create a dummy patient for testing purposes
@@ -44,10 +44,20 @@ public class AppointmentService {
                 request.getTime(),
                 AppointmentStatus.CONFIRMED,
                 doctor,
-                patient
-        );
+                patient);
 
         return appointmentRepository.save(appointment);
+    }
+
+    public void cancelAppointment(Long appointmentId, Long patientId) {
+
+        Appointment appointment = appointmentRepository
+                .findByIdAndPatientId(appointmentId, patientId)
+                .orElseThrow(() -> new RuntimeException("Appointment not found"));
+
+        appointment.setStatus(AppointmentStatus.CANCELLED);
+
+        appointmentRepository.save(appointment);
     }
 
     public List<Appointment> getPatientAppointments(Long patientId) {

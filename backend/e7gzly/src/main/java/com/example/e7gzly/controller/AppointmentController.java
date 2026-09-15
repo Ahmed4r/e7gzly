@@ -29,4 +29,14 @@ public class AppointmentController {
         List<Appointment> appointments = appointmentService.getPatientAppointments(patientId);
         return ResponseEntity.ok(appointments);
     }
+
+   @PatchMapping("/{appointmentId}/patient/{patientId}/cancel")
+public ResponseEntity<Void> cancelAppointment(
+        @PathVariable Long appointmentId,
+        @PathVariable Long patientId) {
+
+    appointmentService.cancelAppointment(appointmentId, patientId);
+
+    return ResponseEntity.noContent().build();
+}
 }
