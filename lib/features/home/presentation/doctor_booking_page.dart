@@ -1,16 +1,21 @@
+import 'package:e7gzly/features/home/data/doctor_model.dart';
 import 'package:e7gzly/features/home/presentation/doctor_details_page.dart';
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:intl/intl.dart';
 
 class BookAppointmentScreen extends StatefulWidget {
-  final String doctorName;
-  const BookAppointmentScreen({super.key, required this.doctorName});
+  final DoctorModel doctor;
+  const BookAppointmentScreen({super.key, required this.doctor});
 
   @override
   State<BookAppointmentScreen> createState() => _BookAppointmentScreenState();
 }
 
 class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
+  bool _isLoading = false;
   DateTime date = DateTime.now();
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay = DateTime.now();
@@ -31,11 +36,56 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
     '5.30 PM',
   ];
 
+  Future<void> _submitBooking() async {
+    if (_selectedDay == null) return;
+    setState(() => _isLoading = true);
+
+    try {
+      final dateStr = DateFormat('yyyy-MM-dd').format(_selectedDay!);
+      
+      // Parse "10.30 AM" to "10:30:00"
+      final timeParts = _selectedTimeSlot.split(' ');
+      final timeStr = timeParts[0].replaceAll('.', ':');
+      final ampm = timeParts[1];
+      
+      int hour = int.parse(timeStr.split(':')[0]);
+      final minute = timeStr.split(':')[1];
+      if (ampm == 'PM' && hour != 12) hour += 12;
+      if (ampm == 'AM' && hour == 12) hour = 0;
+      final timeFormatted = '${hour.toString().padLeft(2, '0')}:$minute:00';
+
+      final requestBody = {
+        'doctorId': widget.doctor.id,
+        'patientId': 1, // Hardcoded for now
+        'date': dateStr,
+        'time': timeFormatted,
+      };
+
+      final response = await http.post(
+        Uri.parse('http://10.0.2.2:8080/api/appointments'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(requestBody),
+      );
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        _showConfirmationDialog();
+      } else {
+        throw Exception('Failed to book appointment: ${response.statusCode}');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error booking appointment: $e')),
+      );
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
   void _showConfirmationDialog() {
     showDialog(
       context: context,
       barrierColor: Colors.black45,
-      builder: (context) => SuccessDialogWidget(doctorName: widget.doctorName),
+      builder: (context) => SuccessDialogWidget(doctorName: widget.doctor.name),
     );
   }
 
@@ -203,7 +253,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
           width: double.infinity,
           height: 52,
           child: ElevatedButton(
-            onPressed: _showConfirmationDialog,
+            onPressed: _isLoading ? null : _submitBooking,
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF1E293B),
               shape: RoundedRectangleBorder(
@@ -211,14 +261,23 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
               ),
               elevation: 0,
             ),
-            child: const Text(
-              'Confirm',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: Colors.white,
-              ),
-            ),
+            child: _isLoading
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  )
+                : const Text(
+                    'Confirm',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.white,
+                    ),
+                  ),
           ),
         ),
       ),
