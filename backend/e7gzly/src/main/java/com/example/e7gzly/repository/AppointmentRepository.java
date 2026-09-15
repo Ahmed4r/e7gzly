@@ -4,6 +4,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.example.e7gzly.model.Appointment;
 
-public interface AppointmentRepository
-        extends JpaRepository<Appointment, Long> {
+import java.util.List;
+
+public interface AppointmentRepository extends JpaRepository<Appointment, Long> {
+    List<Appointment> findByPatientIdOrderByDateDesc(Long patientId);
 }

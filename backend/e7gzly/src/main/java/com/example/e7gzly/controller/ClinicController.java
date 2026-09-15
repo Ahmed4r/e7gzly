@@ -21,6 +21,24 @@ public class ClinicController {
         return clinicService.getAllClinics();
     }
 
+    /**
+     * GET /api/clinics/nearby?lat={lat}&lng={lng}&radius={km}
+     *
+     * Returns clinics within {@code radius} kilometres of the supplied
+     * coordinates, sorted by ascending distance.
+     *
+     * @param lat    user latitude  (decimal degrees)
+     * @param lng    user longitude (decimal degrees)
+     * @param radius search radius  in kilometres (default 5 km)
+     */
+    @GetMapping("/nearby")
+    public List<Clinic> getNearbyClinics(
+            @RequestParam double lat,
+            @RequestParam double lng,
+            @RequestParam(defaultValue = "5") double radius) {
+        return clinicService.getNearbyClinics(lat, lng, radius);
+    }
+
     @GetMapping("/{id}")
     public Clinic getClinicById(@PathVariable Long id) {
         return clinicService.getClinicById(id);
