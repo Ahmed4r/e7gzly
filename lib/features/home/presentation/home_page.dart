@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:developer';
 
 import 'package:carousel_slider/carousel_slider.dart';
+import 'package:e7gzly/core/api_constants.dart';
 import 'package:e7gzly/features/home/data/clinic_model.dart';
 import 'package:e7gzly/features/home/presentation/center_details_page.dart';
 import 'package:e7gzly/features/home/presentation/near_by_clinics_page.dart';
@@ -365,7 +366,7 @@ class _MedicalCentersListState extends State<MedicalCentersList> {
   Future<void> fetchClinics() async {
     try {
       final response = await http.get(
-        Uri.parse('http://10.0.2.2:8080/api/clinics'),
+        Uri.parse('${ApiConstants.baseUrl}/clinics'),
       );
 
       if (response.statusCode == 200) {
