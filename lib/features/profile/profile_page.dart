@@ -124,8 +124,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       height: 48,
                       child: ElevatedButton(
                         onPressed: () {
-                          Navigator.pop(context);
-                          // TODO: Perform Logout logic / Navigate to LoginScreen
+                          Navigator.pop(context);                       
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF1E293B),
@@ -221,26 +220,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       title: 'Favorite',
                       onTap: () => _showComingSoonSnackBar(context),
                     ),
-                    ProfileMenuItem(
-                      icon: Icons.notifications_none_rounded,
-                      title: 'Notifications',
-                      onTap: () => _showComingSoonSnackBar(context),
-                    ),
+                  
                     ProfileMenuItem(
                       icon: Icons.settings_outlined,
                       title: 'Settings',
                       onTap: () => _showComingSoonSnackBar(context),
                     ),
-                    ProfileMenuItem(
-                      icon: Icons.help_outline_rounded,
-                      title: 'Help and Support',
-                      onTap: () => _showComingSoonSnackBar(context),
-                    ),
-                    ProfileMenuItem(
-                      icon: Icons.verified_user_outlined,
-                      title: 'Terms and Conditions',
-                      onTap: () => _showComingSoonSnackBar(context),
-                    ),
+                   
+                   
                     ProfileMenuItem(
                       icon: Icons.logout_rounded,
                       title: 'Log Out',

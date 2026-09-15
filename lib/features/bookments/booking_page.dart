@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+
 import 'dart:convert';
+
 import 'package:e7gzly/features/bookments/data/appointment_model.dart';
 import 'package:intl/intl.dart';
 
@@ -28,22 +30,70 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
       final response = await http.get(
         Uri.parse('http://10.0.2.2:8080/api/appointments/patient/1'),
       );
+
+      debugPrint('GET STATUS: ${response.statusCode}');
+      debugPrint('GET BODY: ${response.body}');
+
       if (response.statusCode == 200) {
         final List<dynamic> jsonList = jsonDecode(response.body);
-        final appointments = jsonList.map((e) => AppointmentModel.fromJson(e)).toList();
+
+        final appointments = jsonList
+            .map((e) => AppointmentModel.fromJson(e))
+            .toList();
+
+        for (final appointment in appointments) {
+          debugPrint('ID: ${appointment.id} | STATUS: ${appointment.status}');
+        }
 
         setState(() {
-          _upcoming = appointments.where((a) => a.status == 'CONFIRMED' || a.status == 'PENDING').toList();
-          _completed = appointments.where((a) => a.status == 'COMPLETED').toList();
-          _canceled = appointments.where((a) => a.status == 'CANCELED').toList();
+          _upcoming = appointments
+              .where((a) => a.status == 'CONFIRMED' || a.status == 'PENDING')
+              .toList();
+
+          _completed = appointments
+              .where((a) => a.status == 'COMPLETED')
+              .toList();
+
+          _canceled = appointments
+              .where((a) => a.status == 'CANCELLED')
+              .toList();
+
           _isLoading = false;
         });
       } else {
-        throw Exception('Failed to load appointments');
+        debugPrint('GET FAILED: ${response.statusCode} - ${response.body}');
+
+        throw Exception('Failed to load appointments: ${response.statusCode}');
+      }
+    } catch (e, stackTrace) {
+      debugPrint('FETCH ERROR: $e');
+      debugPrint('$stackTrace');
+
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _cancelAppointment(int appointmentId) async {
+    const patientId = 1;
+
+    try {
+      final url =
+          'http://10.0.2.2:8080/api/appointments/$appointmentId/patient/$patientId/cancel';
+
+      debugPrint('CANCEL URL: $url');
+
+      final response = await http.patch(Uri.parse(url));
+
+      debugPrint('CANCEL STATUS: ${response.statusCode}');
+      debugPrint('CANCEL BODY: ${response.body}');
+
+      if (response.statusCode == 204) {
+        await _fetchAppointments();
+      } else {
+        throw Exception('Failed to cancel appointment: ${response.statusCode}');
       }
     } catch (e) {
-      debugPrint('Error: $e');
-      setState(() => _isLoading = false);
+      debugPrint('Error canceling appointment: $e');
     }
   }
 
@@ -71,7 +121,10 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
             indicatorColor: Color(0xFF1E293B),
             indicatorSize: TabBarIndicatorSize.label,
             labelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-            unselectedLabelStyle: TextStyle(fontWeight: FontWeight.w500, fontSize: 15),
+            unselectedLabelStyle: TextStyle(
+              fontWeight: FontWeight.w500,
+              fontSize: 15,
+            ),
             tabs: [
               Tab(text: 'Upcoming'),
               Tab(text: 'Completed'),
@@ -83,9 +136,21 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
             ? const Center(child: CircularProgressIndicator())
             : TabBarView(
                 children: [
-                  _BookingsList(appointments: _upcoming, isUpcoming: true),
-                  _BookingsList(appointments: _completed, isUpcoming: false),
-                  _BookingsList(appointments: _canceled, isUpcoming: false),
+                  _BookingsList(
+                    appointments: _upcoming,
+                    isUpcoming: true,
+                    onCancel: _cancelAppointment,
+                  ),
+                  _BookingsList(
+                    appointments: _completed,
+                    isUpcoming: false,
+                    onCancel: _cancelAppointment,
+                  ),
+                  _BookingsList(
+                    appointments: _canceled,
+                    isUpcoming: false,
+                    onCancel: _cancelAppointment,
+                  ),
                 ],
               ),
       ),
@@ -96,16 +161,21 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
 class _BookingsList extends StatelessWidget {
   final List<AppointmentModel> appointments;
   final bool isUpcoming;
+  final Future<void> Function(int appointmentId) onCancel;
 
-  const _BookingsList({required this.appointments, required this.isUpcoming});
+  const _BookingsList({
+    required this.appointments,
+    required this.isUpcoming,
+    required this.onCancel,
+  });
 
   @override
   Widget build(BuildContext context) {
     if (appointments.isEmpty) {
-      return Center(
+      return const Center(
         child: Text(
           'No bookings found',
-          style: const TextStyle(color: Color(0xFF94A3B8)),
+          style: TextStyle(color: Color(0xFF94A3B8)),
         ),
       );
     }
@@ -115,17 +185,17 @@ class _BookingsList extends StatelessWidget {
       itemCount: appointments.length,
       itemBuilder: (context, index) {
         final apt = appointments[index];
-        
-        // Format date and time
+
         final dateObj = DateTime.tryParse(apt.date) ?? DateTime.now();
         final dateFormatted = DateFormat('MMM d, yyyy').format(dateObj);
-        
-        // Time from "10:30:00" to "10:30 AM"
+
         final timeParts = apt.time.split(':');
         final hour = int.tryParse(timeParts[0]) ?? 0;
         final minute = timeParts[1];
+
         final ampm = hour >= 12 ? 'PM' : 'AM';
         final hour12 = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
+
         final timeFormatted = '$hour12:$minute $ampm';
 
         return BookingCard(
@@ -134,9 +204,12 @@ class _BookingsList extends StatelessWidget {
           specialty: apt.doctor.specialty.name,
           location: apt.doctor.clinic.name,
           imageUrl: apt.doctor.imageUrl,
+
           leftButtonText: isUpcoming ? 'Cancel' : 'Re-Book',
           rightButtonText: isUpcoming ? 'Reschedule' : 'Add Review',
-          onLeftButtonPressed: () {},
+
+          onLeftButtonPressed: isUpcoming ? () => onCancel(apt.id) : () {},
+
           onRightButtonPressed: () {},
         );
       },
