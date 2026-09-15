@@ -325,7 +325,7 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
                 context,
                 MaterialPageRoute(
                   builder: (context) =>
-                      BookAppointmentScreen(doctorName: widget.doctor.name),
+                      BookAppointmentScreen(doctor: widget.doctor),
                 ),
               );
             },

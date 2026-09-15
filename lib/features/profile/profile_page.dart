@@ -1,7 +1,49 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'patient_model.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  bool _isLoading = true;
+  PatientModel? _patient;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchProfile();
+  }
+
+  Future<void> _fetchProfile() async {
+    try {
+      final response = await http.get(
+        Uri.parse('http://10.0.2.2:8080/api/patients/1'),
+      );
+      if (response.statusCode == 200) {
+        setState(() {
+          _patient = PatientModel.fromJson(jsonDecode(response.body));
+          _isLoading = false;
+        });
+      } else {
+        throw Exception('Failed to load profile');
+      }
+    } catch (e) {
+      debugPrint('Error: $e');
+      setState(() => _isLoading = false);
+    }
+  }
+
+  void _showComingSoonSnackBar(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Coming Soon!')),
+    );
+  }
 
   void _showLogoutBottomSheet(BuildContext context) {
     showModalBottomSheet(
@@ -82,8 +124,7 @@ class ProfileScreen extends StatelessWidget {
                       height: 48,
                       child: ElevatedButton(
                         onPressed: () {
-                          Navigator.pop(context);
-                          // TODO: Perform Logout logic / Navigate to LoginScreen
+                          Navigator.pop(context);                       
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF1E293B),
@@ -129,66 +170,74 @@ class ProfileScreen extends StatelessWidget {
         backgroundColor: Colors.white,
         elevation: 0,
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          child: Column(
-            children: [
-              const Text(
-                'Daniel Martinez',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1E293B),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                child: Column(
+                  children: [
+                    CircleAvatar(
+                      radius: 40,
+                      backgroundColor: const Color(0xFFE2E8F0),
+                      backgroundImage: _patient?.imageUrl != null
+                          ? NetworkImage(_patient!.imageUrl!)
+                          : null,
+                      child: _patient?.imageUrl == null
+                          ? const Icon(Icons.person, size: 40, color: Color(0xFF94A3B8))
+                          : null,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      _patient?.name ?? 'Unknown User',
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1E293B),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      _patient?.phone ?? 'No phone number',
+                      style: const TextStyle(fontSize: 14, color: Color(0xFF64748B)),
+                    ),
+                    if (_patient?.email != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        _patient!.email!,
+                        style: const TextStyle(fontSize: 14, color: Color(0xFF64748B)),
+                      ),
+                    ],
+                    const SizedBox(height: 24),
+
+                    ProfileMenuItem(
+                      icon: Icons.person_outline_rounded,
+                      title: 'Edit Profile',
+                      onTap: () => _showComingSoonSnackBar(context),
+                    ),
+                    ProfileMenuItem(
+                      icon: Icons.favorite_border_rounded,
+                      title: 'Favorite',
+                      onTap: () => _showComingSoonSnackBar(context),
+                    ),
+                  
+                    ProfileMenuItem(
+                      icon: Icons.settings_outlined,
+                      title: 'Settings',
+                      onTap: () => _showComingSoonSnackBar(context),
+                    ),
+                   
+                   
+                    ProfileMenuItem(
+                      icon: Icons.logout_rounded,
+                      title: 'Log Out',
+                      onTap: () => _showLogoutBottomSheet(context),
+                      showDivider: false,
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 6),
-              const Text(
-                '+123 856479683',
-                style: TextStyle(fontSize: 14, color: Color(0xFF64748B)),
-              ),
-              const SizedBox(height: 24),
-
-              ProfileMenuItem(
-                icon: Icons.person_outline_rounded,
-                title: 'Edit Profile',
-                onTap: () {},
-              ),
-              ProfileMenuItem(
-                icon: Icons.favorite_border_rounded,
-                title: 'Favorite',
-                onTap: () {},
-              ),
-              ProfileMenuItem(
-                icon: Icons.notifications_none_rounded,
-                title: 'Notifications',
-                onTap: () {},
-              ),
-              ProfileMenuItem(
-                icon: Icons.settings_outlined,
-                title: 'Settings',
-                onTap: () {},
-              ),
-              ProfileMenuItem(
-                icon: Icons.help_outline_rounded,
-                title: 'Help and Support',
-                onTap: () {},
-              ),
-              ProfileMenuItem(
-                icon: Icons.verified_user_outlined,
-                title: 'Terms and Conditions',
-                onTap: () {},
-              ),
-              ProfileMenuItem(
-                icon: Icons.logout_rounded,
-                title: 'Log Out',
-                onTap: () => _showLogoutBottomSheet(context),
-                showDivider: false,
-              ),
-            ],
-          ),
-        ),
-      ),
+            ),
     );
   }
 }

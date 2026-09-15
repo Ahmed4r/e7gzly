@@ -1,7 +1,101 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
-class MyBookingsScreen extends StatelessWidget {
+import 'dart:convert';
+
+import 'package:e7gzly/features/bookments/data/appointment_model.dart';
+import 'package:intl/intl.dart';
+
+class MyBookingsScreen extends StatefulWidget {
   const MyBookingsScreen({super.key});
+
+  @override
+  State<MyBookingsScreen> createState() => _MyBookingsScreenState();
+}
+
+class _MyBookingsScreenState extends State<MyBookingsScreen> {
+  bool _isLoading = true;
+  List<AppointmentModel> _upcoming = [];
+  List<AppointmentModel> _completed = [];
+  List<AppointmentModel> _canceled = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchAppointments();
+  }
+
+  Future<void> _fetchAppointments() async {
+    try {
+      final response = await http.get(
+        Uri.parse('http://10.0.2.2:8080/api/appointments/patient/1'),
+      );
+
+      debugPrint('GET STATUS: ${response.statusCode}');
+      debugPrint('GET BODY: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final List<dynamic> jsonList = jsonDecode(response.body);
+
+        final appointments = jsonList
+            .map((e) => AppointmentModel.fromJson(e))
+            .toList();
+
+        for (final appointment in appointments) {
+          debugPrint('ID: ${appointment.id} | STATUS: ${appointment.status}');
+        }
+
+        setState(() {
+          _upcoming = appointments
+              .where((a) => a.status == 'CONFIRMED' || a.status == 'PENDING')
+              .toList();
+
+          _completed = appointments
+              .where((a) => a.status == 'COMPLETED')
+              .toList();
+
+          _canceled = appointments
+              .where((a) => a.status == 'CANCELLED')
+              .toList();
+
+          _isLoading = false;
+        });
+      } else {
+        debugPrint('GET FAILED: ${response.statusCode} - ${response.body}');
+
+        throw Exception('Failed to load appointments: ${response.statusCode}');
+      }
+    } catch (e, stackTrace) {
+      debugPrint('FETCH ERROR: $e');
+      debugPrint('$stackTrace');
+
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _cancelAppointment(int appointmentId) async {
+    const patientId = 1;
+
+    try {
+      final url =
+          'http://10.0.2.2:8080/api/appointments/$appointmentId/patient/$patientId/cancel';
+
+      debugPrint('CANCEL URL: $url');
+
+      final response = await http.patch(Uri.parse(url));
+
+      debugPrint('CANCEL STATUS: ${response.statusCode}');
+      debugPrint('CANCEL BODY: ${response.body}');
+
+      if (response.statusCode == 204) {
+        await _fetchAppointments();
+      } else {
+        throw Exception('Failed to cancel appointment: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Error canceling appointment: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +121,10 @@ class MyBookingsScreen extends StatelessWidget {
             indicatorColor: Color(0xFF1E293B),
             indicatorSize: TabBarIndicatorSize.label,
             labelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-            unselectedLabelStyle: TextStyle(fontWeight: FontWeight.w500, fontSize: 15),
+            unselectedLabelStyle: TextStyle(
+              fontWeight: FontWeight.w500,
+              fontSize: 15,
+            ),
             tabs: [
               Tab(text: 'Upcoming'),
               Tab(text: 'Completed'),
@@ -35,106 +132,87 @@ class MyBookingsScreen extends StatelessWidget {
             ],
           ),
         ),
-        body: const TabBarView(
-          children: [
-            _UpcomingBookingsList(),
-            _CompletedBookingsList(),
-            Center(
-              child: Text(
-                'No canceled bookings',
-                style: TextStyle(color: Color(0xFF94A3B8)),
+        body: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : TabBarView(
+                children: [
+                  _BookingsList(
+                    appointments: _upcoming,
+                    isUpcoming: true,
+                    onCancel: _cancelAppointment,
+                  ),
+                  _BookingsList(
+                    appointments: _completed,
+                    isUpcoming: false,
+                    onCancel: _cancelAppointment,
+                  ),
+                  _BookingsList(
+                    appointments: _canceled,
+                    isUpcoming: false,
+                    onCancel: _cancelAppointment,
+                  ),
+                ],
               ),
-            ),
-          ],
-        ),
-      
       ),
     );
   }
 }
 
-class _UpcomingBookingsList extends StatelessWidget {
-  const _UpcomingBookingsList();
+class _BookingsList extends StatelessWidget {
+  final List<AppointmentModel> appointments;
+  final bool isUpcoming;
+  final Future<void> Function(int appointmentId) onCancel;
+
+  const _BookingsList({
+    required this.appointments,
+    required this.isUpcoming,
+    required this.onCancel,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.only(top: 16, bottom: 24),
-      children: [
-        BookingCard(
-          dateTime: 'May 22, 2023 - 10.00 AM',
-          doctorName: 'Dr. James Robinson',
-          specialty: 'Orthopedic Surgery',
-          location: 'Elite Ortho Clinic, USA',
-          leftButtonText: 'Cancel',
-          rightButtonText: 'Reschedule',
-          onLeftButtonPressed: () {},
-          onRightButtonPressed: () {},
+    if (appointments.isEmpty) {
+      return const Center(
+        child: Text(
+          'No bookings found',
+          style: TextStyle(color: Color(0xFF94A3B8)),
         ),
-        BookingCard(
-          dateTime: 'June 14, 2023 - 15.00 PM',
-          doctorName: 'Dr. Daniel Lee',
-          specialty: 'Gastroenterologist',
-          location: 'Digestive Institute, USA',
-          leftButtonText: 'Cancel',
-          rightButtonText: 'Reschedule',
-          onLeftButtonPressed: () {},
-          onRightButtonPressed: () {},
-        ),
-        BookingCard(
-          dateTime: 'June 21, 2023 - 10.00 AM',
-          doctorName: 'Dr. Nathan Harris',
-          specialty: 'Cardiologist',
-          location: 'HeartCare Center, USA',
-          leftButtonText: 'Cancel',
-          rightButtonText: 'Reschedule',
-          onLeftButtonPressed: () {},
-          onRightButtonPressed: () {},
-        ),
-      ],
-    );
-  }
-}
+      );
+    }
 
-class _CompletedBookingsList extends StatelessWidget {
-  const _CompletedBookingsList();
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
+    return ListView.builder(
       padding: const EdgeInsets.only(top: 16, bottom: 24),
-      children: [
-        BookingCard(
-          dateTime: 'March 12, 2023 - 11.00 AM',
-          doctorName: 'Dr. Sarah Johnson',
-          specialty: 'Gynecologist',
-          location: "Women's Health Clinic",
-          leftButtonText: 'Re-Book',
-          rightButtonText: 'Add Review',
-          onLeftButtonPressed: () {},
+      itemCount: appointments.length,
+      itemBuilder: (context, index) {
+        final apt = appointments[index];
+
+        final dateObj = DateTime.tryParse(apt.date) ?? DateTime.now();
+        final dateFormatted = DateFormat('MMM d, yyyy').format(dateObj);
+
+        final timeParts = apt.time.split(':');
+        final hour = int.tryParse(timeParts[0]) ?? 0;
+        final minute = timeParts[1];
+
+        final ampm = hour >= 12 ? 'PM' : 'AM';
+        final hour12 = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
+
+        final timeFormatted = '$hour12:$minute $ampm';
+
+        return BookingCard(
+          dateTime: '$dateFormatted - $timeFormatted',
+          doctorName: apt.doctor.name,
+          specialty: apt.doctor.specialty.name,
+          location: apt.doctor.clinic.name,
+          imageUrl: apt.doctor.imageUrl,
+
+          leftButtonText: isUpcoming ? 'Cancel' : 'Re-Book',
+          rightButtonText: isUpcoming ? 'Reschedule' : 'Add Review',
+
+          onLeftButtonPressed: isUpcoming ? () => onCancel(apt.id) : () {},
+
           onRightButtonPressed: () {},
-        ),
-        BookingCard(
-          dateTime: 'March 2, 2023 - 12.00 AM',
-          doctorName: 'Dr. Michael Chang',
-          specialty: 'Cardiologist',
-          location: 'HeartCare Center, USA',
-          leftButtonText: 'Re-Book',
-          rightButtonText: 'Add Review',
-          onLeftButtonPressed: () {},
-          onRightButtonPressed: () {},
-        ),
-        BookingCard(
-          dateTime: 'Feb 2, 2023 - 9.00 AM',
-          doctorName: 'Dr. Robert Smith',
-          specialty: 'Dermatologist',
-          location: 'Skin Care Center, USA',
-          leftButtonText: 'Re-Book',
-          rightButtonText: 'Add Review',
-          onLeftButtonPressed: () {},
-          onRightButtonPressed: () {},
-        ),
-      ],
+        );
+      },
     );
   }
 }
@@ -144,6 +222,7 @@ class BookingCard extends StatelessWidget {
   final String doctorName;
   final String specialty;
   final String location;
+  final String? imageUrl;
   final String leftButtonText;
   final String rightButtonText;
   final VoidCallback onLeftButtonPressed;
@@ -155,6 +234,7 @@ class BookingCard extends StatelessWidget {
     required this.doctorName,
     required this.specialty,
     required this.location,
+    this.imageUrl,
     required this.leftButtonText,
     required this.rightButtonText,
     required this.onLeftButtonPressed,
@@ -199,12 +279,20 @@ class BookingCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: const Color(0xFFE2E8F0),
                   borderRadius: BorderRadius.circular(12),
+                  image: imageUrl != null && imageUrl!.isNotEmpty
+                      ? DecorationImage(
+                          image: NetworkImage(imageUrl!),
+                          fit: BoxFit.cover,
+                        )
+                      : null,
                 ),
-                child: const Icon(
-                  Icons.person,
-                  color: Color(0xFF94A3B8),
-                  size: 36,
-                ),
+                child: imageUrl == null || imageUrl!.isEmpty
+                    ? const Icon(
+                        Icons.person,
+                        color: Color(0xFF94A3B8),
+                        size: 36,
+                      )
+                    : null,
               ),
               const SizedBox(width: 16),
               Expanded(
