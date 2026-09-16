@@ -3,6 +3,7 @@ package com.example.e7gzly.service;
 import com.example.e7gzly.dto.AppointmentRequest;
 import com.example.e7gzly.model.Appointment;
 import com.example.e7gzly.model.AppointmentStatus;
+import com.example.e7gzly.model.AppointmentUpdateRequest;
 import com.example.e7gzly.model.Doctor;
 import com.example.e7gzly.model.Patient;
 import com.example.e7gzly.repository.AppointmentRepository;
@@ -62,5 +63,25 @@ public class AppointmentService {
 
     public List<Appointment> getPatientAppointments(Long patientId) {
         return appointmentRepository.findByPatientIdOrderByDateDesc(patientId);
+    }
+
+    public Appointment updateAppointment(
+            Long appointmentId,
+            Long patientId,
+            AppointmentUpdateRequest request) {
+
+        Appointment appointment = appointmentRepository
+                .findById(appointmentId)
+                .orElseThrow(() -> new RuntimeException("Appointment not found"));
+
+        if (!appointment.getPatient().getId().equals(patientId)) {
+            throw new RuntimeException(
+                    "You are not allowed to update this appointment");
+        }
+
+        appointment.setDate(request.getDate());
+        appointment.setTime(request.getTime());
+
+        return appointmentRepository.save(appointment);
     }
 }
