@@ -121,7 +121,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
 
         response = await http.put(
           Uri.parse(
-            'http://10.0.2.2:8080/api/appointments/'
+            '${ApiConstants.baseUrl}/appointments/'
             '${widget.appointmentId}/patient/${widget.patientId}',
           ),
           headers: {'Content-Type': 'application/json'},

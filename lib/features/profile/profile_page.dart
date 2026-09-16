@@ -1,6 +1,9 @@
+import 'package:e7gzly/core/api_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+
 import 'dart:convert';
+
 import 'patient_model.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -23,7 +26,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _fetchProfile() async {
     try {
       final response = await http.get(
-        Uri.parse('http://10.0.2.2:8080/api/patients/1'),
+        Uri.parse('${ApiConstants.baseUrl}/patients/1'),
       );
       if (response.statusCode == 200) {
         setState(() {
@@ -40,9 +43,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _showComingSoonSnackBar(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Coming Soon!')),
-    );
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('Coming Soon!')));
   }
 
   void _showLogoutBottomSheet(BuildContext context) {
@@ -124,7 +126,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       height: 48,
                       child: ElevatedButton(
                         onPressed: () {
-                          Navigator.pop(context);                       
+                          Navigator.pop(context);
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF1E293B),
@@ -174,7 +176,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ? const Center(child: CircularProgressIndicator())
           : SafeArea(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 16,
+                ),
                 child: Column(
                   children: [
                     CircleAvatar(
@@ -184,7 +189,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ? NetworkImage(_patient!.imageUrl!)
                           : null,
                       child: _patient?.imageUrl == null
-                          ? const Icon(Icons.person, size: 40, color: Color(0xFF94A3B8))
+                          ? const Icon(
+                              Icons.person,
+                              size: 40,
+                              color: Color(0xFF94A3B8),
+                            )
                           : null,
                     ),
                     const SizedBox(height: 16),
@@ -199,13 +208,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const SizedBox(height: 6),
                     Text(
                       _patient?.phone ?? 'No phone number',
-                      style: const TextStyle(fontSize: 14, color: Color(0xFF64748B)),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Color(0xFF64748B),
+                      ),
                     ),
                     if (_patient?.email != null) ...[
                       const SizedBox(height: 4),
                       Text(
                         _patient!.email!,
-                        style: const TextStyle(fontSize: 14, color: Color(0xFF64748B)),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFF64748B),
+                        ),
                       ),
                     ],
                     const SizedBox(height: 24),
@@ -220,14 +235,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       title: 'Favorite',
                       onTap: () => _showComingSoonSnackBar(context),
                     ),
-                  
+
                     ProfileMenuItem(
                       icon: Icons.settings_outlined,
                       title: 'Settings',
                       onTap: () => _showComingSoonSnackBar(context),
                     ),
-                   
-                   
+
                     ProfileMenuItem(
                       icon: Icons.logout_rounded,
                       title: 'Log Out',
