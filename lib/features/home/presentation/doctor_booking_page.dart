@@ -1,14 +1,27 @@
+import 'package:e7gzly/core/api_constants.dart';
 import 'package:e7gzly/features/home/data/doctor_model.dart';
 import 'package:e7gzly/features/home/presentation/doctor_details_page.dart';
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:http/http.dart' as http;
+
 import 'dart:convert';
+
 import 'package:intl/intl.dart';
 
 class BookAppointmentScreen extends StatefulWidget {
   final DoctorModel doctor;
-  const BookAppointmentScreen({super.key, required this.doctor});
+  final bool update;
+  final int? appointmentId;
+  final int? patientId;
+
+  const BookAppointmentScreen({
+    super.key,
+    required this.doctor,
+    this.update = false,
+    this.appointmentId,
+    this.patientId,
+  });
 
   @override
   State<BookAppointmentScreen> createState() => _BookAppointmentScreenState();
@@ -35,49 +48,127 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
     '5.00 PM',
     '5.30 PM',
   ];
+  bool _isTimeSlotInPast(String slot) {
+    if (_selectedDay == null) return false;
+
+    final now = DateTime.now();
+
+    // Future dates → all slots are valid
+    if (!_isSameDate(_selectedDay!, now)) {
+      return false;
+    }
+
+    final parts = slot.split(' ');
+    final timeParts = parts[0].split('.');
+    int hour = int.parse(timeParts[0]);
+    final minute = int.parse(timeParts[1]);
+    final amPm = parts[1];
+
+    if (amPm == 'PM' && hour != 12) {
+      hour += 12;
+    }
+
+    if (amPm == 'AM' && hour == 12) {
+      hour = 0;
+    }
+
+    final slotTime = DateTime(now.year, now.month, now.day, hour, minute);
+
+    return slotTime.isBefore(now);
+  }
+
+  bool _isSameDate(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
 
   Future<void> _submitBooking() async {
     if (_selectedDay == null) return;
+
     setState(() => _isLoading = true);
 
     try {
       final dateStr = DateFormat('yyyy-MM-dd').format(_selectedDay!);
-      
-      // Parse "10.30 AM" to "10:30:00"
+
       final timeParts = _selectedTimeSlot.split(' ');
       final timeStr = timeParts[0].replaceAll('.', ':');
       final ampm = timeParts[1];
-      
+
       int hour = int.parse(timeStr.split(':')[0]);
       final minute = timeStr.split(':')[1];
-      if (ampm == 'PM' && hour != 12) hour += 12;
-      if (ampm == 'AM' && hour == 12) hour = 0;
+
+      if (ampm == 'PM' && hour != 12) {
+        hour += 12;
+      }
+
+      if (ampm == 'AM' && hour == 12) {
+        hour = 0;
+      }
+
       final timeFormatted = '${hour.toString().padLeft(2, '0')}:$minute:00';
 
-      final requestBody = {
-        'doctorId': widget.doctor.id,
-        'patientId': 1, // Hardcoded for now
-        'date': dateStr,
-        'time': timeFormatted,
-      };
+      late http.Response response;
 
-      final response = await http.post(
-        Uri.parse('http://10.0.2.2:8080/api/appointments'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(requestBody),
-      );
+      if (widget.update) {
+        // =========================
+        // UPDATE APPOINTMENT
+        // =========================
 
-      if (response.statusCode == 201 || response.statusCode == 200) {
+        if (widget.appointmentId == null || widget.patientId == null) {
+          throw Exception('Appointment ID or Patient ID is missing');
+        }
+
+        final requestBody = {'date': dateStr, 'time': timeFormatted};
+
+        response = await http.put(
+          Uri.parse(
+            'http://10.0.2.2:8080/api/appointments/'
+            '${widget.appointmentId}/patient/${widget.patientId}',
+          ),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode(requestBody),
+        );
+      } else {
+        // =========================
+        // CREATE APPOINTMENT
+        // =========================
+
+        if (widget.patientId == null) {
+          throw Exception('Patient ID is missing');
+        }
+
+        final requestBody = {
+          'doctorId': widget.doctor.id,
+          'patientId': widget.patientId,
+          'date': dateStr,
+          'time': timeFormatted,
+        };
+
+        response = await http.post(
+          Uri.parse('${ApiConstants.baseUrl}/api/appointments'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode(requestBody),
+        );
+      }
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
         _showConfirmationDialog();
       } else {
-        throw Exception('Failed to book appointment: ${response.statusCode}');
+        throw Exception('Failed: ${response.statusCode}\n${response.body}');
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error booking appointment: $e')),
+        SnackBar(
+          content: Text(
+            widget.update
+                ? 'Error updating appointment: $e'
+                : 'Error booking appointment: $e',
+          ),
+        ),
       );
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -88,6 +179,8 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
       builder: (context) => SuccessDialogWidget(doctorName: widget.doctor.name),
     );
   }
+
+  final DateTime today = DateTime.now();
 
   @override
   Widget build(BuildContext context) {
@@ -130,8 +223,9 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                 borderRadius: BorderRadius.circular(16),
               ),
               child: TableCalendar(
-                firstDay: DateTime.utc(2020, 1, 1),
+                firstDay: DateTime.utc(today.year, today.month, today.day),
                 lastDay: DateTime.utc(2030, 12, 31),
+
                 focusedDay: _focusedDay,
                 selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
                 onDaySelected: (selectedDay, focusedDay) {
@@ -214,16 +308,23 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
               ),
               itemBuilder: (context, index) {
                 final slot = _timeSlots[index];
+
+                final isPast = _isTimeSlotInPast(slot);
                 final isSelected = slot == _selectedTimeSlot;
+
                 return GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _selectedTimeSlot = slot;
-                    });
-                  },
+                  onTap: isPast
+                      ? null
+                      : () {
+                          setState(() {
+                            _selectedTimeSlot = slot;
+                          });
+                        },
                   child: Container(
                     decoration: BoxDecoration(
-                      color: isSelected
+                      color: isPast
+                          ? const Color(0xFFE2E8F0)
+                          : isSelected
                           ? const Color(0xFF1E293B)
                           : const Color(0xFFF8FAFC),
                       borderRadius: BorderRadius.circular(10),
@@ -234,7 +335,9 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: isSelected
+                        color: isPast
+                            ? const Color(0xFF94A3B8)
+                            : isSelected
                             ? Colors.white
                             : const Color(0xFF64748B),
                       ),

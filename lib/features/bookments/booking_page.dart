@@ -1,3 +1,5 @@
+import 'package:e7gzly/core/api_constants.dart';
+import 'package:e7gzly/features/home/presentation/doctor_booking_page.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -28,7 +30,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
   Future<void> _fetchAppointments() async {
     try {
       final response = await http.get(
-        Uri.parse('http://10.0.2.2:8080/api/appointments/patient/1'),
+        Uri.parse('${ApiConstants.baseUrl}/api/appointments/patient/1'),
       );
 
       debugPrint('GET STATUS: ${response.statusCode}');
@@ -78,7 +80,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
 
     try {
       final url =
-          'http://10.0.2.2:8080/api/appointments/$appointmentId/patient/$patientId/cancel';
+          "${ApiConstants.baseUrl}/api/appointments/$appointmentId/patient/$patientId/cancel";
 
       debugPrint('CANCEL URL: $url');
 
@@ -210,7 +212,19 @@ class _BookingsList extends StatelessWidget {
 
           onLeftButtonPressed: isUpcoming ? () => onCancel(apt.id) : () {},
 
-          onRightButtonPressed: () {},
+          onRightButtonPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => BookAppointmentScreen(
+                  doctor: apt.doctor,
+                  update: true,
+                  appointmentId: apt.id,
+                  patientId: 1,
+                ),
+              ),
+            );
+          },
         );
       },
     );
