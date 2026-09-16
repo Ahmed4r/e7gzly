@@ -1,3 +1,4 @@
+import 'package:e7gzly/core/api_constants.dart';
 import 'package:e7gzly/features/home/data/doctor_model.dart';
 import 'package:e7gzly/features/home/presentation/doctor_details_page.dart';
 import 'package:flutter/material.dart';
@@ -62,7 +63,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
       };
 
       final response = await http.post(
-        Uri.parse('http://10.0.2.2:8080/api/appointments'),
+        Uri.parse('${ApiConstants.baseUrl}/appointments'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(requestBody),
       );

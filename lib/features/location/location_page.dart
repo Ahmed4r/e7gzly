@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
 
+import 'package:e7gzly/core/api_constants.dart';
 import 'package:e7gzly/core/custom_loading.dart';
 import 'package:e7gzly/features/home/data/clinic_model.dart';
 import 'package:e7gzly/features/home/presentation/center_details_page.dart';
@@ -192,7 +193,7 @@ class _LocationScreenState extends State<LocationScreen>
 
     try {
       final uri = Uri.parse(
-        'http://10.0.2.2:8080/api/clinics/nearby?lat=$lat&lng=$lng&radius=$radius',
+        '${ApiConstants.baseUrl}/clinics/nearby?lat=$lat&lng=$lng&radius=$radius',
       );
       final response = await http
           .get(uri)

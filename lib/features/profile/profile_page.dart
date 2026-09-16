@@ -1,3 +1,4 @@
+import 'package:e7gzly/core/api_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -23,7 +24,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _fetchProfile() async {
     try {
       final response = await http.get(
-        Uri.parse('http://10.0.2.2:8080/api/patients/1'),
+        Uri.parse('${ApiConstants.baseUrl}/patients/1'),
       );
       if (response.statusCode == 200) {
         setState(() {
